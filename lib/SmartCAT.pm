@@ -52,6 +52,29 @@ sub getFile {
 
     my $ua = LWP::UserAgent->new;
 
+    my $pretranslateCompleted = 0;
+    while ($pretranslateCompleted == 0) {
+        my $url_check = Mojo::URL->new('https://smartcat.ai/api/integration/v1/document');
+        $url_check->query({documentId => $file_id});
+
+        my $request_check = HTTP::Request->new('GET', $url->to_string);
+
+        $request_check->header('Accept' => 'application/json');
+        $request_check->header('Authorization' => 'Basic '.$key);
+        $request_check->header('Content-Length' => 0);
+
+        my $response_check = $ua->request($request_check);
+
+        if ($response_check->is_success) {
+            $pretranslateCompleted = (JSON::XS::decode_json($response->content))->{pretranslateCompleted};
+            unless ($pretranslateCompleted) {
+                sleep(15);
+            }
+        } else {
+            die $response_check->status_line;
+        }
+    }
+
     my $url = Mojo::URL->new('https://smartcat.ai/api/integration/v1/document/export');
     $url->query({documentIds => $file_id});
     my $request = HTTP::Request->new('POST', $url->to_string);
